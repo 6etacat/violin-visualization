@@ -8,9 +8,6 @@
 
 <script>
 import YouTubePlayer from 'youtube-player';
-import violin from '../violin_annotation.json'
-
-// const indices = Object.keys(violin);
 
 function isYoutubeId(id) {
   var request = new XMLHttpRequest();
@@ -32,6 +29,7 @@ function isYoutubeId(id) {
 export default {
   name: 'YouTubePlayer',
   props: {
+    violin: Object,
     id: String,
     start: Number,
     end: Number,
@@ -45,10 +43,10 @@ export default {
   },
   methods: {
     prepareVideo: function(id, start, end) {
-      if (id && isYoutubeId(violin[id].source)) {
+      if (id && isYoutubeId(this.violin[id].source)) {
         this.player = YouTubePlayer('video-player');
         this.player.cueVideoById({
-          videoId: violin[id].source,
+          videoId: this.violin[id].source,
           startSeconds: start,
           endSeconds: end
         });
