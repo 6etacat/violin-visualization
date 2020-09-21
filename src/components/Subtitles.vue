@@ -1,6 +1,6 @@
 <template>
   <div class="subtitles">
-    <p v-for="(sub, i) in subtitles" :key="sub[0]" :class="currentSubtitles[i] ? 'current-subtitle' : ''">{{ sub[0] }}</p>
+    <p v-for="(sub, i) in subtitles" :key="i+sub[0]" :class="currentSubtitles[i] ? 'current-subtitle' : ''">{{ sub[0] }}</p>
   </div>
 </template>
 

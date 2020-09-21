@@ -8,13 +8,16 @@
     <div class="controls-wrapper">
       <div class="controls">
         <div class="row">
-          <input id="id-input" type="text" :value="id+1" v-on:input="onInputResize" v-on:keyup.enter="submitNewId"/><span class='measure'/> / {{ indices.length }}
+          <input class="input" type="text" :value="clipId" v-on:keyup.enter="submitNewClipId" v-on:click="selectElement"/>
+        </div>
+        <div class="row">
+          <input id="id-input" class="input" type="text" :value="id+1" v-on:change="onInputResize" v-on:input="onInputResize" v-on:keyup.enter="submitNewId"/> / {{ indices.length }}
         </div>
         <div class="row">
           <button v-on:click="updateContent(-1)" :disabled="id == 0">Prev</button>
           <button v-on:click="updateContent(1)" :disabled="id == indices.length - 1">Next</button>
         </div>
-        <button class="row" v-on:click="muted = !muted; toggleMute();">{{ muted ? 'Unmute': 'Mute' }}</button>
+        <button v-on:click="muted = !muted; toggleMute();">{{ muted ? 'Unmute': 'Mute' }}</button>
       </div>
       <div class="footnote">
         {{ file }} [{{start}}:{{end}}] in {{ split }} split
@@ -49,26 +52,29 @@ export default {
     indices: function() {
       return Object.keys(this.violin);
     },
+    clipId: function() {
+      return this.indices[this.id];
+    },
     file: function() {
-      return this.violin[this.indices[this.id]].file;
+      return this.violin[this.clipId].file;
     },
     split: function() {
-      return this.violin[this.indices[this.id]].split;
+      return this.violin[this.clipId].split;
     },
     start: function() {
-      return this.violin[this.indices[this.id]].span[0];
+      return this.violin[this.clipId].span[0];
     },
     end: function() {
-      return this.violin[this.indices[this.id]].span[1];
+      return this.violin[this.clipId].span[1];
     },
     playbackTime: function() {
       return this.$store.state.playbackTime;
     },
     statements: function() {
-      return this.violin[this.indices[this.id]].statement
+      return this.violin[this.clipId].statement
     },
     subtitles: function() {
-      return this.violin[this.indices[this.id]].sub
+      return this.violin[this.clipId].sub
     },
   },
   methods: {
@@ -92,10 +98,20 @@ export default {
       this.id = newId - 1;
       this.currentSubtitles = [];
     },
-    onInputResize: function (event) {
-      let spanElm = event.target.nextElementSibling;
-      spanElm.textContent = event.target.value; // the hidden span takes the value of the input; 
-      event.target.style.width = spanElm.offsetWidth + 'px'; // apply width of the span to the input
+    submitNewClipId: function(event) {
+      let newId = this.indices.indexOf(event.target.value);
+      if (newId < 0) {
+        alert(`clip ${event.target.value} not found`);
+      } else {
+        this.id = newId;
+        this.currentSubtitles = [];
+        this.onInputResize({
+          target: document.getElementById('id-input')
+        });
+      }
+    },
+    selectElement: function(event) {
+      event.target.select();
     },
     initialInputResize: function () {
       let elt = document.getElementById('id-input');
@@ -108,7 +124,6 @@ export default {
     }
   },
   mounted: function() {
-    console.log(this.violin);
     setInterval(this.updateSubtitles, 10);
     this.initialInputResize();
   },
@@ -147,24 +162,23 @@ export default {
       margin-bottom: 0.7rem;
     }
 
-    #id-input {
+    .input {
       padding: 2px;
       min-width: 1rem;
+      font-family: Avenir, Helvetica, Arial, sans-serif;
+      font-size: 1rem;
       border: none;
       outline: none;
       text-align: center;
       border-bottom: 1px solid black;
     }
 
-    #id-input:focus {
+    .input:focus {
       border-bottom: 1px solid rgb(0, 75, 189);
     }
 
-    #id-input, .measure {
-      padding: 2px;
-      font-size: 1rem;
-      font-family: Avenir, Helvetica, Arial, sans-serif;
-      white-space: pre; /* white-spaces will work effectively */
+    #id-input {
+      width: 5ch;
     }
 
     .measure{  
