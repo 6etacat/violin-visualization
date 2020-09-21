@@ -1,8 +1,8 @@
 <template>
   <div class="statements">
     <Fragment v-for="(stmts, i) in statements" :key="i">
-      <div class="true">{{ stmts[0] }}</div>
-      <div class="false">{{ stmts[1] }}</div>
+      <div class="true" :class="errors.real[i] && 'error'">{{ stmts[0] }}</div>
+      <div class="false" :class="errors.fake[i] && 'error'">{{ stmts[1] }}</div>
     </Fragment>
   </div>
 </template>
@@ -17,6 +17,7 @@ export default {
   },
   props: {
     statements: Array,
+    errors: Object,
   },
   computed: {
     trueStatements: function() {
@@ -48,6 +49,10 @@ export default {
 
   .false {
     background: rgba(255, 0, 0, 0.363);
+  }
+
+  .error {
+    background: rgba(255, 255, 0, 0.363);
   }
 }
 </style>

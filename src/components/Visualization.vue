@@ -4,14 +4,14 @@
     <div class="subtitles-wrapper">
       <Subtitles :subtitles="subtitles" :currentSubtitles="currentSubtitles" ref="subtitles" />
     </div>
-    <Statements :statements="statements" />
+    <Statements :statements="statements" :errors="errors" />
     <div class="controls-wrapper">
       <div class="controls">
         <div class="row">
           <input class="input" type="text" :value="clipId" v-on:keyup.enter="submitNewClipId" v-on:click="selectElement"/>
         </div>
         <div class="row">
-          <input id="id-input" class="input" type="text" :value="id+1" v-on:change="onInputResize" v-on:input="onInputResize" v-on:keyup.enter="submitNewId"/> / {{ indices.length }}
+          <input id="id-input" class="input" type="text" :value="id+1" v-on:keyup.enter="submitNewId"/> / {{ indices.length }}
         </div>
         <div class="row">
           <button v-on:click="updateContent(-1)" :disabled="id == 0">Prev</button>
@@ -31,6 +31,8 @@ import YouTubeVideo from './YouTubeVideo.vue';
 import Subtitles from './Subtitles.vue';
 import Statements from './Statements.vue';
 
+const DEFAULT_ERRORS = {real: [false, false, false], fake: [false, false, false]};
+
 export default {
   name: 'App',
   components: {
@@ -46,6 +48,7 @@ export default {
       id: 0,
       currentSubtitles: [],
       muted: false,
+      errors: DEFAULT_ERRORS,
     };
   },
   computed: {
@@ -92,32 +95,32 @@ export default {
       this.currentSubtitles = [];
     },
     submitNewId: function(event) {
-      let newId = Number(event.target.value);
+      const newId = Number(event.target.value);
       console.assert(parseInt(event.target.value) === newId);
       console.assert(newId > 0 && newId <= this.indices.length);
       this.id = newId - 1;
       this.currentSubtitles = [];
+      this.errors = DEFAULT_ERRORS;
     },
     submitNewClipId: function(event) {
-      let newId = this.indices.indexOf(event.target.value);
+      const message = event.target.value.split('$');
+      const newId = this.indices.indexOf(message[0]);
       if (newId < 0) {
         alert(`clip ${event.target.value} not found`);
       } else {
         this.id = newId;
         this.currentSubtitles = [];
-        this.onInputResize({
-          target: document.getElementById('id-input')
-        });
+        this.errors = DEFAULT_ERRORS;
+        if (message.length == 3) {
+          this.errors = {
+            real: message[1].split('').map((x) => x == 1),
+            fake: message[2].split('').map((x) => x == 1)
+          }
+        }
       }
     },
     selectElement: function(event) {
       event.target.select();
-    },
-    initialInputResize: function () {
-      let elt = document.getElementById('id-input');
-      var spanElm = elt.nextElementSibling;
-      spanElm.textContent = elt.value; // the hidden span takes the value of the input; 
-      elt.style.width = spanElm.offsetWidth + 'px'; // apply width of the span to the input
     },
     toggleMute: function() {
       this.$refs.video.toggleMute(this.muted);
@@ -125,7 +128,6 @@ export default {
   },
   mounted: function() {
     setInterval(this.updateSubtitles, 10);
-    this.initialInputResize();
   },
 }
 </script>
