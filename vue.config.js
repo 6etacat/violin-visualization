@@ -1,4 +1,4 @@
 // vue.config.js
 module.exports = {
-  publicPath: "violin-visualization/"
+  publicPath: "/violin-visualization/"
 }

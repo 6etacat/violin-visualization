@@ -1,9 +1,16 @@
 <template>
-  <div class="statements">
-    <Fragment v-for="(stmts, i) in statements" :key="i">
-      <div class="true" :class="errors.real[i] && 'error'">{{ stmts[0] }}</div>
-      <div class="false" :class="errors.fake[i] && 'error'">{{ stmts[1] }}</div>
-    </Fragment>
+  <div class="statements-wrapper">
+    <div class="statements">
+      <div class="header real">Real</div>
+      <div class="header fake">Fake</div>
+      <Fragment v-for="(stmts, i) in statements" :key="i">
+        <div :class="getClass('real', i)">{{ stmts[0] }}</div>
+        <div :class="getClass('fake', i)">{{ stmts[1] }}</div>
+      </Fragment>
+    </div>
+    <div class="footer">
+      <div v-for="(line, i) in footer" :key="i" :class="line.class">{{line.content}}</div>
+    </div>
   </div>
 </template>
 
@@ -20,11 +27,58 @@ export default {
     errors: Object,
   },
   computed: {
-    trueStatements: function() {
-      return this.statements.map((stmt) => stmt[0]);
-    },
-    falseStatements: function() {
-      return this.statements.map((stmt) => stmt[1]);
+    footer: function() {
+      if (this.errors.comparison) {
+        return [
+          {
+            content: 'both models correct',
+            class: 'cell'
+          },
+          {
+            content: `error of ${this.errors.A.name} model`,
+            class: 'A'
+          },
+          {
+            content: `error of ${this.errors.B.name} model`,
+            class: 'B'
+          },
+          {
+            content: `error of both models`,
+            class: 'error'
+          }
+        ];
+      }
+      return [
+          {
+            content: `model correct`,
+            class: 'cell'
+          },
+          {
+            content: `model error`,
+            class: 'error'
+          }
+        ];
+    }
+  },
+  methods: {
+    getClass: function(stmtType, idx) {
+      if (this.errors.comparison) {
+        const errA = this.errors.A[stmtType][idx];
+        const errB = this.errors.B[stmtType][idx];
+        if (errA && errB) {
+          return 'error';
+        } else if (errA) {
+          return 'A';
+        } else if (errB) {
+          return 'B';
+        } else {
+          return 'cell';
+        }
+      } else if (this.errors[stmtType][idx]) {
+        console.log('here');
+        return 'error';
+      }
+      return 'cell';
     }
   }
 }
@@ -34,25 +88,54 @@ export default {
 .statements {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  row-gap: 0.1rem;
-  column-gap: 0.1rem;
+  row-gap: 0.2rem;
+  column-gap: 0.2rem;
   border-radius: 1rem;
   overflow: hidden;
 
   div {
     padding: 1rem;
   }
+}
 
-  .true {
-    background: rgba(0, 128, 0, 0.363);
-  }
+.cell {
+  background: lightgrey;
+}
 
-  .false {
-    background: rgba(255, 0, 0, 0.363);
-  }
+.header {
+  text-align: center;
+}
 
-  .error {
-    background: rgba(255, 255, 0, 0.363);
+.real {
+  background: rgba(0, 128, 0, 0.3);
+}
+
+.fake {
+  background: rgba(255, 0, 0, 0.3);
+}
+
+.error {
+  background: rgba(255, 0, 0, 0.5);
+}
+
+.A {
+  background: rgba(63, 63, 255, 0.5);
+}
+
+.B {
+  background: rgba(182, 49, 182, 0.5);
+}
+
+.footer {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.5rem;
+
+  div {
+    display: inline-block;
+    margin-right: 0.3rem;
+    padding: 0.2rem 0.3rem;
+    border-radius: 0.3rem;
   }
 }
 </style>

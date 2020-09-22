@@ -8,7 +8,7 @@
     <div class="controls-wrapper">
       <div class="controls">
         <div class="row">
-          <input class="input" type="text" :value="clipId" v-on:keyup.enter="submitNewClipId" v-on:click="selectElement"/>
+          <input class="input" type="text" value="" v-on:keyup.enter="submitNewClipId" v-on:click="selectElement"/>
         </div>
         <div class="row">
           <input id="id-input" class="input" type="text" :value="id+1" v-on:keyup.enter="submitNewId"/> / {{ indices.length }}
@@ -31,7 +31,11 @@ import YouTubeVideo from './YouTubeVideo.vue';
 import Subtitles from './Subtitles.vue';
 import Statements from './Statements.vue';
 
-const DEFAULT_ERRORS = {real: [false, false, false], fake: [false, false, false]};
+const DEFAULT_ERRORS = {
+  comparison: false,
+  real: [false, false, false],
+  fake: [false, false, false]
+};
 
 export default {
   name: 'App',
@@ -113,8 +117,23 @@ export default {
         this.errors = DEFAULT_ERRORS;
         if (message.length == 3) {
           this.errors = {
+            comparison: false,
             real: message[1].split('').map((x) => x == 1),
             fake: message[2].split('').map((x) => x == 1)
+          }
+        } else if (message.length == 7) {
+          this.errors = {
+            comparison: true,
+            A: {
+              name: message[1],
+              real: message[2].split('').map((x) => x == 1),
+              fake: message[3].split('').map((x) => x == 1)
+            },
+            B: {
+              name: message[4],
+              real: message[5].split('').map((x) => x == 1),
+              fake: message[6].split('').map((x) => x == 1)
+            }
           }
         }
       }
