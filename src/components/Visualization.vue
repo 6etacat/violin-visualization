@@ -1,6 +1,6 @@
 <template>
   <div class="visualization">
-    <YouTubeVideo :key="indices[id]" :violin="violin" :id="indices[id]" :start="start" :end="end" :muted="muted" ref="video" />
+    <YouTubeVideo :key="indices[id]" :source="source" :id="indices[id]" :start="start" :end="end" :muted="muted" ref="video" />
     <div class="subtitles-wrapper">
       <Subtitles :subtitles="subtitles" :currentSubtitles="currentSubtitles" ref="subtitles" />
     </div>
@@ -17,7 +17,16 @@
           <button v-on:click="updateContent(-1)" :disabled="id == 0">Prev</button>
           <button v-on:click="updateContent(1)" :disabled="id == indices.length - 1">Next</button>
         </div>
-        <button v-on:click="muted = !muted; toggleMute();">{{ muted ? 'Unmute': 'Mute' }}</button>
+        <button class="row" :disabled="!isPlayerLoaded" v-on:click="muted = !muted; toggleMute();">{{ muted ? 'Unmute': 'Mute' }}</button>
+        <select :value="resultsName" v-on:change="submitResults">
+          <option value="all_data">All Data</option>
+          <option value="vid+sub_err">Errors of Vid+Sub model</option>
+          <option value="sub_err">Errors of Sub model</option>
+          <option value="vid_err">Errors of Vid model</option>
+          <option value="vid+sub_sub_err">Error comparisons of Vid+Sub vs Sub models</option>
+          <option value="vid+sub_vid_err">Error comparisons of Vid+Sub vs Vid models</option>
+          <option value="vid_sub_err">Error comparisons of Vid vs Sub models</option>
+        </select>
       </div>
       <div class="footnote">
         {{ file }} [{{start}}:{{end}}] in {{ split }} split
@@ -30,12 +39,7 @@
 import YouTubeVideo from './YouTubeVideo.vue';
 import Subtitles from './Subtitles.vue';
 import Statements from './Statements.vue';
-
-const DEFAULT_ERRORS = {
-  comparison: false,
-  real: [false, false, false],
-  fake: [false, false, false]
-};
+import { parseMessage } from '../helper.js';
 
 export default {
   name: 'App',
@@ -46,24 +50,33 @@ export default {
   },
   props: {
     violin: Object,
+    results: Object,
+    resultsName: String,
+    updateResults: Function,
   },
   data: function() {
     return {
       id: 0,
       currentSubtitles: [],
       muted: false,
-      errors: DEFAULT_ERRORS,
+      errors: undefined,
     };
   },
   computed: {
     indices: function() {
-      return Object.keys(this.violin);
+      if (this.violin) {
+        return Object.keys(this.violin);
+      }
+      return [];
     },
     clipId: function() {
       return this.indices[this.id];
     },
     file: function() {
       return this.violin[this.clipId].file;
+    },
+    source: function() {
+      return this.violin[this.clipId].source;
     },
     split: function() {
       return this.violin[this.clipId].split;
@@ -78,10 +91,13 @@ export default {
       return this.$store.state.playbackTime;
     },
     statements: function() {
-      return this.violin[this.clipId].statement
+      return this.violin[this.clipId].statement;
     },
     subtitles: function() {
-      return this.violin[this.clipId].sub
+      return this.violin[this.clipId].sub;
+    },
+    isPlayerLoaded: function() {
+      return this.$store.state.isPlayerLoaded;
     },
   },
   methods: {
@@ -92,11 +108,23 @@ export default {
       this.subtitles.forEach((sub, i) => {
         this.currentSubtitles[i] = this.playbackTime * 1000 >= sub[1][0] && this.playbackTime * 1000 <= sub[1][1];
       });
-      this.$refs.subtitles.$forceUpdate();
+      if (this.$refs.subtitles) {
+        this.$refs.subtitles.$forceUpdate();
+      }
     },
     updateContent: function(offset) {
       this.id += offset;
       this.currentSubtitles = [];
+    },
+    updateErrors: function() {
+      if (this.results && this.results[this.indices[this.id]]) {
+        this.errors = this.results[this.indices[this.id]];
+      } else {
+        this.errors = undefined;
+      }
+    },
+    submitResults: function(event) {
+      this.updateResults(event.target.value);
     },
     submitNewId: function(event) {
       const newId = Number(event.target.value);
@@ -104,7 +132,7 @@ export default {
       console.assert(newId > 0 && newId <= this.indices.length);
       this.id = newId - 1;
       this.currentSubtitles = [];
-      this.errors = DEFAULT_ERRORS;
+      this.updateErrors();
     },
     submitNewClipId: function(event) {
       const message = event.target.value.split('$');
@@ -114,38 +142,21 @@ export default {
       } else {
         this.id = newId;
         this.currentSubtitles = [];
-        this.errors = DEFAULT_ERRORS;
-        if (message.length == 3) {
-          this.errors = {
-            comparison: false,
-            real: message[1].split('').map((x) => x == 1),
-            fake: message[2].split('').map((x) => x == 1)
-          }
-        } else if (message.length == 7) {
-          this.errors = {
-            comparison: true,
-            A: {
-              name: message[1],
-              real: message[2].split('').map((x) => x == 1),
-              fake: message[3].split('').map((x) => x == 1)
-            },
-            B: {
-              name: message[4],
-              real: message[5].split('').map((x) => x == 1),
-              fake: message[6].split('').map((x) => x == 1)
-            }
-          }
-        }
+        this.updateErrors();
+        this.errors = parseMessage(message);
       }
     },
     selectElement: function(event) {
       event.target.select();
     },
     toggleMute: function() {
-      this.$refs.video.toggleMute(this.muted);
+      if (this.$refs.video) {
+        this.$refs.video.toggleMute(this.muted);
+      }
     }
   },
   mounted: function() {
+    this.updateErrors();
     setInterval(this.updateSubtitles, 10);
   },
 }

@@ -8,29 +8,12 @@
 
 <script>
 import YouTubePlayer from 'youtube-player';
-
-function isYoutubeId(id) {
-  var request = new XMLHttpRequest();
-  request.open('GET', 'https://www.googleapis.com/youtube/v3/videos?id='+ id + '&key=AIzaSyCXENXFZ_zJ9tCGnHtci3aRQRSUuzWDY0Y&part=snippet', false);
-  request.send();
-
-  if (request.status === 200) {
-    var response = JSON.parse(request.responseText);
-    if (response.pageInfo.totalResults == 0) {
-      return false;
-    } else {
-      return true;
-    }
-  } else {
-    return false;
-  }
-}
+import { isYoutubeId } from '../helper.js';
 
 export default {
   name: 'YouTubePlayer',
   props: {
-    violin: Object,
-    id: String,
+    source: String,
     start: Number,
     end: Number,
     muted: Boolean,
@@ -42,19 +25,23 @@ export default {
     };
   },
   methods: {
-    prepareVideo: function(id, start, end) {
-      if (id && isYoutubeId(this.violin[id].source)) {
-        this.player = YouTubePlayer('video-player');
-        this.player.cueVideoById({
-          videoId: this.violin[id].source,
-          startSeconds: start,
-          endSeconds: end
-        });
-      } else {
-        this.player = undefined;
-        document.getElementById('video-player').outerHTML = '<div id="video-player" class="disabled"><div>Video currently not available</div></div>'
-      }
-      this.toggleMute(this.muted);
+    prepareVideo: function(source, start, end) {
+      this.$store.commit('setIsPlayerLoaded', false);
+      isYoutubeId(source).then(canLoad => {
+        if (canLoad) {
+          this.player = YouTubePlayer('video-player');
+          this.player.cueVideoById({
+            videoId: source,
+            startSeconds: start,
+            endSeconds: end
+          });
+          this.toggleMute(this.muted);
+          this.$store.commit('setIsPlayerLoaded', true);
+        } else {
+          this.player = undefined;
+          document.getElementById('video-player').outerHTML = '<div id="video-player" class="disabled"><div>Video currently not available</div></div>'
+        }
+      });
     },
     updateTime: function() {
       if (this.player) {
@@ -80,7 +67,7 @@ export default {
   },
   mounted: function() {
     this.$store.commit('setPlaybackTime', 0);
-    this.prepareVideo(this.id, this.start, this.end);
+    this.prepareVideo(this.source, this.start, this.end);
   },
   beforeDestroy: function() {
     clearInterval(this.timeUpdater);

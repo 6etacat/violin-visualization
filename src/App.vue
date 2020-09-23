@@ -1,5 +1,5 @@
 <template>
-  <Visualization v-if="dataLoaded" :violin="violin" />
+  <Visualization v-if="isLoaded" :violin="currentViolin" :results="results" :resultsName="resultsName" :updateResults="updateResults" />
   <div v-else class="loading">
     <svg class="loading-icon" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
       <circle cx="50" cy="50" fill="none" stroke="#94a9ce" stroke-width="10" r="35" stroke-dasharray="164.93361431346415 56.97787143782138">
@@ -12,6 +12,7 @@
 <script>
 import Visualization from './components/Visualization.vue';
 import axios from 'axios';
+import { parseMessage } from './helper';
 
 export default {
   name: 'App',
@@ -21,16 +22,49 @@ export default {
   data: function() {
     return {
       violin: undefined,
-      dataLoaded: false,
+      currentViolin: undefined,
+      results: undefined,
+      resultsName: "all_data",
     };
+  },
+  computed: {
+    isLoaded () {
+      return this.$store.state.isLoaded;
+    }
   },
   methods: {
     fetchData: function() {
       axios.get('violin_annotation.json').then(response => {
         this.violin = response.data;
-        this.dataLoaded = true;
+        this.currentViolin = this.violin;
+        this.$store.commit('setIsLoaded', true);
       });
     },
+    updateResults: function(resultsName) {
+      if (this.resultsName == resultsName) {
+        return;
+      }
+      this.$store.commit('setIsLoaded', false);
+      if (resultsName === "all_data") {
+        this.results = undefined;
+        this.currentViolin = this.violin;
+        this.$store.commit('setIsLoaded', true);
+      } else {
+        axios.get(`results/${resultsName}.txt`).then(response => {
+          this.resultsName = resultsName;
+          this.results = {};
+          this.currentViolin = {};
+          const messages = response.data.split('\n').map(line => line.split('$'));
+          messages.forEach(message => {
+            this.results[message[0]] = parseMessage(message);
+          });
+          Object.keys(this.results).forEach(clip => {
+            this.currentViolin[clip] = this.violin[clip];
+          });
+          this.$store.commit('setIsLoaded', true);
+        });
+      }
+    }
   },
   mounted: function() {
     this.fetchData();

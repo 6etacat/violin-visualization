@@ -8,7 +8,7 @@
         <div :class="getClass('fake', i)">{{ stmts[1] }}</div>
       </Fragment>
     </div>
-    <div class="footer">
+    <div v-if="errors" class="footer">
       <div v-for="(line, i) in footer" :key="i" :class="line.class">{{line.content}}</div>
     </div>
   </div>
@@ -28,6 +28,9 @@ export default {
   },
   computed: {
     footer: function() {
+      if (!this.errors) {
+        return [];
+      }
       if (this.errors.comparison) {
         return [
           {
@@ -62,6 +65,10 @@ export default {
   },
   methods: {
     getClass: function(stmtType, idx) {
+      console.log(this.errors);
+      if (!this.errors) {
+        return 'cell';
+      }
       if (this.errors.comparison) {
         const errA = this.errors.A[stmtType][idx];
         const errB = this.errors.B[stmtType][idx];
@@ -75,7 +82,6 @@ export default {
           return 'cell';
         }
       } else if (this.errors[stmtType][idx]) {
-        console.log('here');
         return 'error';
       }
       return 'cell';
